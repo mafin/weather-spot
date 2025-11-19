@@ -22,6 +22,28 @@ npm run start
 npm run lint
 ```
 
+## Docker
+
+Aplikace je připravená pro Docker deployment:
+
+```bash
+# Build a spuštění pomocí docker-compose
+docker-compose up -d
+
+# Rebuild po změnách
+docker-compose up --build -d
+
+# Zastavení
+docker-compose down
+
+# Logs
+docker-compose logs -f weather-app
+```
+
+Aplikace běží na http://localhost:3000
+
+**Dockerfile** používá multi-stage build pro optimální velikost image (Node 20 Alpine).
+
 ## Setup Requirements
 
 **Žádné!** Open-Meteo API nevyžaduje registraci ani API klíč. Aplikace funguje okamžitě po `npm install && npm run dev`.
