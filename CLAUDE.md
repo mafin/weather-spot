@@ -20,6 +20,11 @@ npm run start
 
 # Lint
 npm run lint
+
+# Tests
+npm test                  # Run all tests
+npm run test:watch        # Run tests in watch mode
+npm run test:coverage     # Run tests with coverage report
 ```
 
 ## Docker
@@ -37,7 +42,7 @@ docker-compose up --build -d
 docker-compose down
 
 # Logs
-docker-compose logs -f weather-app
+docker-compose logs -f weatherspot
 ```
 
 Aplikace běží na http://localhost:3000
@@ -60,9 +65,11 @@ components/
   CurrentWeather.tsx # Karta aktuálního počasí
   ForecastCard.tsx  # Jednotlivá karta předpovědi
   FavoritesBar.tsx  # Seznam oblíbených měst
+  __tests__/        # Component tests
 lib/
   weather-api.ts    # API calls pro Open-Meteo (Geocoding + Weather)
   local-storage.ts  # Utility pro práci s localStorage
+  __tests__/        # Unit tests for lib functions
 types/
   weather.ts        # TypeScript typy pro Open-Meteo data
 ```
@@ -122,6 +129,38 @@ FavoriteLocation[] = [{
   lon: 14.4208
 }]
 ```
+
+## Testing
+
+Projekt používá **Jest 30** a **React Testing Library** pro unit testy.
+
+### Test Structure
+
+```
+lib/__tests__/
+  local-storage.test.ts   # Tests for localStorage utilities
+  weather-api.test.ts     # Tests for API functions (with mocked fetch)
+components/__tests__/
+  SearchBar.test.tsx      # Tests for SearchBar component
+  ForecastCard.test.tsx   # Tests for ForecastCard component
+```
+
+### Running Tests
+
+```bash
+npm test                  # Run all tests once
+npm run test:watch        # Run in watch mode (auto re-run on changes)
+npm run test:coverage     # Generate coverage report
+```
+
+### Test Coverage
+
+Essential tests cover:
+- **localStorage utilities**: getFavorites, addFavorite, removeFavorite, isFavorite
+- **API functions**: searchCity, getWeatherByCoordinates, interpretWeatherCode (with mocked fetch)
+- **Components**: SearchBar, ForecastCard (user interactions, rendering, state)
+
+All tests use mocked dependencies (localStorage, fetch API) to ensure fast, reliable unit tests.
 
 ## Tailwind Configuration
 

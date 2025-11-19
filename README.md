@@ -53,11 +53,25 @@ docker-compose logs -f weatherspot
 
 The app runs on [http://localhost:3000](http://localhost:3000)
 
+### Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode (re-runs on file changes)
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
 ## Tech Stack
 
 - **Framework**: Next.js 16 (App Router)
 - **UI**: React 19, Tailwind CSS 4
 - **Language**: TypeScript 5
+- **Testing**: Jest 30, React Testing Library
 - **API**: Open-Meteo (Geocoding + Weather Forecast)
 - **Storage**: localStorage for favorites
 - **Container**: Docker with multi-stage builds
