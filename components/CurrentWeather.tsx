@@ -28,7 +28,7 @@ export default function CurrentWeather({ data, location, onToggleFavorite, isFav
         <button
           onClick={onToggleFavorite}
           className="text-3xl hover:scale-110 transition-transform"
-          title={isFavorite ? 'Odebrat z oblíbených' : 'Přidat do oblíbených'}
+          title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         >
           {isFavorite ? '★' : '☆'}
         </button>
@@ -46,19 +46,19 @@ export default function CurrentWeather({ data, location, onToggleFavorite, isFav
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-blue-400">
         <div>
-          <p className="text-blue-100 text-sm">Pocitová</p>
+          <p className="text-blue-100 text-sm">Feels like</p>
           <p className="text-2xl font-semibold">{Math.round(current.apparent_temperature)}°C</p>
         </div>
         <div>
-          <p className="text-blue-100 text-sm">Vlhkost</p>
+          <p className="text-blue-100 text-sm">Humidity</p>
           <p className="text-2xl font-semibold">{current.relative_humidity_2m}%</p>
         </div>
         <div>
-          <p className="text-blue-100 text-sm">Vítr</p>
+          <p className="text-blue-100 text-sm">Wind</p>
           <p className="text-2xl font-semibold">{Math.round(current.wind_speed_10m)} km/h</p>
         </div>
         <div>
-          <p className="text-blue-100 text-sm">Tlak</p>
+          <p className="text-blue-100 text-sm">Pressure</p>
           <p className="text-2xl font-semibold">{Math.round(current.pressure_msl)} hPa</p>
         </div>
       </div>

@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WeatherSpot
 
-## Getting Started
+Modern weather dashboard built with Next.js 14+, React, TypeScript and Tailwind CSS. Get current weather conditions and 5-day forecasts for any location using the free Open-Meteo API.
 
-First, run the development server:
+## Features
+
+- **Current Weather**: Real-time temperature, humidity, wind speed, and atmospheric pressure
+- **5-Day Forecast**: Daily weather predictions with min/max temperatures and conditions
+- **City Search**: Find weather for any location worldwide
+- **Favorites**: Save your favorite locations for quick access (stored in localStorage)
+- **No API Key Required**: Uses the free Open-Meteo API with no registration needed
+- **Docker Ready**: Containerized deployment with docker-compose
+
+## Quick Start
+
+### Development
 
 ```bash
+# Install dependencies
+npm install
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Build for production
+npm run build
 
-## Learn More
+# Start production server
+npm run start
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Docker
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# Build and run with docker-compose
+docker-compose up -d
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Rebuild after changes
+docker-compose up --build -d
 
-## Deploy on Vercel
+# Stop containers
+docker-compose down
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# View logs
+docker-compose logs -f weatherspot
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The app runs on [http://localhost:3000](http://localhost:3000)
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **UI**: React 19, Tailwind CSS 4
+- **Language**: TypeScript 5
+- **API**: Open-Meteo (Geocoding + Weather Forecast)
+- **Storage**: localStorage for favorites
+- **Container**: Docker with multi-stage builds
+
+## Project Structure
+
+```
+app/
+  page.tsx              # Main dashboard component
+  layout.tsx            # Root layout with metadata
+components/
+  SearchBar.tsx         # City search form
+  CurrentWeather.tsx    # Current conditions card
+  ForecastCard.tsx      # Individual forecast day card
+  FavoritesBar.tsx      # Saved locations list
+lib/
+  weather-api.ts        # Open-Meteo API client
+  local-storage.ts      # localStorage utilities
+types/
+  weather.ts            # TypeScript type definitions
+```
+
+## How It Works
+
+1. **Search**: Enter a city name → Geocoding API finds coordinates
+2. **Fetch**: Coordinates → Weather Forecast API returns current + daily data
+3. **Display**: Weather codes interpreted into human-readable conditions with emoji
+4. **Save**: Click ⭐ to save locations to localStorage
+
+## API Details
+
+WeatherSpot uses two Open-Meteo endpoints:
+
+- **Geocoding**: `https://geocoding-api.open-meteo.com/v1/search`
+- **Weather**: `https://api.open-meteo.com/v1/forecast`
+
+Both are free, unlimited, and require no authentication.
+
+## License
+
+MIT
+
+---
+
+Built with Next.js and powered by Open-Meteo

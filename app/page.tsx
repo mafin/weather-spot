@@ -37,7 +37,7 @@ export default function Home() {
       setCurrentWeather(weather);
       setCurrentLocation(location);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Něco se pokazilo');
+      setError(err instanceof Error ? err.message : 'Something went wrong');
       setCurrentWeather(null);
       setCurrentLocation(null);
     } finally {
@@ -99,10 +99,10 @@ export default function Home() {
       <div className="container mx-auto max-w-6xl">
         <header className="text-center mb-12">
           <h1 className="text-5xl font-bold text-gray-800 mb-2">
-            Počasí Dashboard
+            Weather Dashboard
           </h1>
           <p className="text-gray-600">
-            Vyhledej město a zjisti aktuální počasí a předpověď
+            Search for a city to get current weather and forecast
           </p>
         </header>
 
@@ -135,7 +135,7 @@ export default function Home() {
           {currentWeather && getDailyForecasts().length > 0 && (
             <div className="w-full max-w-2xl">
               <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                5-denní předpověď
+                5-day forecast
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 {getDailyForecasts().map((item, index) => (
@@ -154,7 +154,7 @@ export default function Home() {
           {!currentWeather && !isLoading && !error && (
             <div className="text-center text-gray-500 mt-12">
               <p className="text-xl">
-                Začni vyhledáním města a zjisti počasí 🌤️
+                Start by searching for a city to get weather 🌤️
               </p>
             </div>
           )}

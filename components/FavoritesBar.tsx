@@ -15,7 +15,7 @@ export default function FavoritesBar({ favorites, onSelect, onRemove }: Favorite
 
   return (
     <div className="w-full max-w-2xl bg-white rounded-lg shadow-md p-4">
-      <h3 className="text-sm font-semibold text-gray-600 mb-3">Oblíbená místa</h3>
+      <h3 className="text-sm font-semibold text-gray-600 mb-3">Favorite Locations</h3>
       <div className="flex flex-wrap gap-2">
         {favorites.map((fav) => (
           <div
@@ -34,7 +34,7 @@ export default function FavoritesBar({ favorites, onSelect, onRemove }: Favorite
                 onRemove(fav.id);
               }}
               className="text-gray-400 hover:text-red-500 text-sm opacity-0 group-hover:opacity-100 transition-opacity"
-              title="Odebrat"
+              title="Remove"
             >
               ×
             </button>

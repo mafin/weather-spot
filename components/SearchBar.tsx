@@ -24,7 +24,7 @@ export default function SearchBar({ onSearch, isLoading }: SearchBarProps) {
           type="text"
           value={city}
           onChange={(e) => setCity(e.target.value)}
-          placeholder="Zadej město (např. Prague, London, Tokyo)..."
+          placeholder="Enter city (e.g., Prague, London, Tokyo)..."
           className="flex-1 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           disabled={isLoading}
         />
@@ -33,7 +33,7 @@ export default function SearchBar({ onSearch, isLoading }: SearchBarProps) {
           disabled={isLoading || !city.trim()}
           className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
-          {isLoading ? 'Hledám...' : 'Hledat'}
+          {isLoading ? 'Searching...' : 'Search'}
         </button>
       </div>
     </form>

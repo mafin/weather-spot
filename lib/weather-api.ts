@@ -14,13 +14,13 @@ export async function searchCity(query: string): Promise<GeocodingResult[]> {
   );
 
   if (!response.ok) {
-    throw new Error('Chyba při vyhledávání města');
+    throw new Error('Error searching for city');
   }
 
   const data: GeocodingResponse = await response.json();
 
   if (!data.results || data.results.length === 0) {
-    throw new Error('Město nenalezeno');
+    throw new Error('City not found');
   }
 
   return data.results;
@@ -42,7 +42,7 @@ export async function getWeatherByCoordinates(
   const response = await fetch(`${WEATHER_URL}?${params}`);
 
   if (!response.ok) {
-    throw new Error('Chyba při načítání počasí');
+    throw new Error('Error loading weather');
   }
 
   return response.json();
@@ -67,35 +67,35 @@ export async function getWeather(cityName: string): Promise<{
 // https://open-meteo.com/en/docs
 export function interpretWeatherCode(code: number): WeatherInterpretation {
   const interpretations: Record<number, WeatherInterpretation> = {
-    0: { description: 'Jasno', icon: '☀️' },
-    1: { description: 'Převážně jasno', icon: '🌤️' },
-    2: { description: 'Polojasno', icon: '⛅' },
-    3: { description: 'Oblačno', icon: '☁️' },
-    45: { description: 'Mlha', icon: '🌫️' },
-    48: { description: 'Námrazová mlha', icon: '🌫️' },
-    51: { description: 'Lehké mrholení', icon: '🌦️' },
-    53: { description: 'Mrholení', icon: '🌦️' },
-    55: { description: 'Husté mrholení', icon: '🌧️' },
-    56: { description: 'Lehké mrznoucí mrholení', icon: '🌧️' },
-    57: { description: 'Mrznoucí mrholení', icon: '🌧️' },
-    61: { description: 'Slabý déšť', icon: '🌧️' },
-    63: { description: 'Déšť', icon: '🌧️' },
-    65: { description: 'Silný déšť', icon: '⛈️' },
-    66: { description: 'Lehký mrznoucí déšť', icon: '🌧️' },
-    67: { description: 'Mrznoucí déšť', icon: '🌧️' },
-    71: { description: 'Slabé sněžení', icon: '🌨️' },
-    73: { description: 'Sněžení', icon: '❄️' },
-    75: { description: 'Silné sněžení', icon: '❄️' },
-    77: { description: 'Sněhové vločky', icon: '❄️' },
-    80: { description: 'Slabé přeháňky', icon: '🌦️' },
-    81: { description: 'Přeháňky', icon: '🌧️' },
-    82: { description: 'Silné přeháňky', icon: '⛈️' },
-    85: { description: 'Slabé sněhové přeháňky', icon: '🌨️' },
-    86: { description: 'Sněhové přeháňky', icon: '❄️' },
-    95: { description: 'Bouřka', icon: '⛈️' },
-    96: { description: 'Bouřka s lehkým kroupami', icon: '⛈️' },
-    99: { description: 'Bouřka s kroupami', icon: '⛈️' }
+    0: { description: 'Clear sky', icon: '☀️' },
+    1: { description: 'Mainly clear', icon: '🌤️' },
+    2: { description: 'Partly cloudy', icon: '⛅' },
+    3: { description: 'Overcast', icon: '☁️' },
+    45: { description: 'Fog', icon: '🌫️' },
+    48: { description: 'Depositing rime fog', icon: '🌫️' },
+    51: { description: 'Light drizzle', icon: '🌦️' },
+    53: { description: 'Moderate drizzle', icon: '🌦️' },
+    55: { description: 'Dense drizzle', icon: '🌧️' },
+    56: { description: 'Light freezing drizzle', icon: '🌧️' },
+    57: { description: 'Freezing drizzle', icon: '🌧️' },
+    61: { description: 'Slight rain', icon: '🌧️' },
+    63: { description: 'Moderate rain', icon: '🌧️' },
+    65: { description: 'Heavy rain', icon: '⛈️' },
+    66: { description: 'Light freezing rain', icon: '🌧️' },
+    67: { description: 'Freezing rain', icon: '🌧️' },
+    71: { description: 'Slight snow', icon: '🌨️' },
+    73: { description: 'Moderate snow', icon: '❄️' },
+    75: { description: 'Heavy snow', icon: '❄️' },
+    77: { description: 'Snow grains', icon: '❄️' },
+    80: { description: 'Slight rain showers', icon: '🌦️' },
+    81: { description: 'Moderate rain showers', icon: '🌧️' },
+    82: { description: 'Violent rain showers', icon: '⛈️' },
+    85: { description: 'Slight snow showers', icon: '🌨️' },
+    86: { description: 'Heavy snow showers', icon: '❄️' },
+    95: { description: 'Thunderstorm', icon: '⛈️' },
+    96: { description: 'Thunderstorm with slight hail', icon: '⛈️' },
+    99: { description: 'Thunderstorm with heavy hail', icon: '⛈️' }
   };
 
-  return interpretations[code] || { description: 'Neznámé', icon: '❓' };
+  return interpretations[code] || { description: 'Unknown', icon: '❓' };
 }

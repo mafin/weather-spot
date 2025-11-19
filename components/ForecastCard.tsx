@@ -14,7 +14,7 @@ export default function ForecastCard({ date, tempMax, tempMin, weatherCode }: Fo
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
-    const days = ['Ne', 'Po', 'Út', 'St', 'Čt', 'Pá', 'So'];
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     return `${days[d.getDay()]} ${d.getDate()}.${d.getMonth() + 1}.`;
   };
 
