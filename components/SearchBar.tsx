@@ -25,7 +25,7 @@ export default function SearchBar({ onSearch, isLoading }: SearchBarProps) {
           value={city}
           onChange={(e) => setCity(e.target.value)}
           placeholder="Zadej město (např. Prague, London, Tokyo)..."
-          className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="flex-1 px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           disabled={isLoading}
         />
         <button

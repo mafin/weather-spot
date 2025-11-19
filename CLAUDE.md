@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Weather Dashboard aplikace postavená s Next.js 14+, React, TypeScript a Tailwind CSS. Zobrazuje aktuální počasí a 5-denní předpověď pomocí OpenWeatherMap API s možností ukládat oblíbená místa do localStorage.
+Weather Dashboard aplikace postavená s Next.js 14+, React, TypeScript a Tailwind CSS. Zobrazuje aktuální počasí a 5-denní předpověď pomocí Open-Meteo API (free, bez API klíče) s možností ukládat oblíbená místa do localStorage.
 
 ## Development Commands
 
@@ -24,17 +24,7 @@ npm run lint
 
 ## Setup Requirements
 
-### API Key Configuration
-
-1. Zaregistruj se na https://openweathermap.org/api (zdarma)
-2. Vygeneruj API klíč v sekci "API keys"
-3. Otevři `.env.local` a nahraď `your_api_key_here` svým API klíčem:
-   ```
-   NEXT_PUBLIC_OPENWEATHER_API_KEY=tvůj_api_klíč
-   ```
-4. Restartuj dev server
-
-**Důležité:** API klíč je `NEXT_PUBLIC_*` protože je potřeba na klientovi. Pro produkci zvažte použití Next.js API routes jako proxy.
+**Žádné!** Open-Meteo API nevyžaduje registraci ani API klíč. Aplikace funguje okamžitě po `npm install && npm run dev`.
 
 ## Architecture
 
@@ -49,17 +39,21 @@ components/
   ForecastCard.tsx  # Jednotlivá karta předpovědi
   FavoritesBar.tsx  # Seznam oblíbených měst
 lib/
-  weather-api.ts    # API calls pro OpenWeatherMap
+  weather-api.ts    # API calls pro Open-Meteo (Geocoding + Weather)
   local-storage.ts  # Utility pro práci s localStorage
 types/
-  weather.ts        # TypeScript typy pro weather data
+  weather.ts        # TypeScript typy pro Open-Meteo data
 ```
 
 ### Data Flow
 
-1. **Vyhledávání**: SearchBar → page.tsx `handleSearch()` → parallel API calls (current + forecast)
+1. **Vyhledávání města**:
+   - SearchBar → `searchCity()` (Geocoding API) → získá souřadnice
+   - Pak `getWeatherByCoordinates()` → získá počasí
+
 2. **Oblíbené**: Ukládá se `{id, name, country, lat, lon}` do localStorage pod klíčem `weather-favorites`
-3. **Forecast**: Filtruje data na polední hodnoty (12:00) pro každý den, zobrazuje max 5 dní
+
+3. **Forecast**: Zobrazuje daily data (max/min teploty, weather code) pro následujících 5 dní
 
 ### Key Patterns
 
@@ -68,11 +62,31 @@ types/
 - **State Management**: React useState/useEffect, žádný external state manager
 - **API Layer**: Centralized v `lib/weather-api.ts` s TypeScript types
 
-### OpenWeatherMap API Usage
+### Open-Meteo API Usage
 
-- **Current Weather**: `/weather?q={city}&units=metric&lang=cz`
-- **5-day Forecast**: `/forecast?q={city}&units=metric&lang=cz` (3-hour intervals)
-- **Icons**: `https://openweathermap.org/img/wn/{icon}@2x.png`
+**Geocoding API** (vyhledávání měst):
+```
+GET https://geocoding-api.open-meteo.com/v1/search?name={city}&count=10&language=cs
+```
+
+**Weather Forecast API**:
+```
+GET https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}
+  &current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,pressure_msl
+  &daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max
+  &timezone=auto
+  &forecast_days=7
+```
+
+**WMO Weather Codes**: Používá standardní WMO kódy (0-99) pro interpretaci počasí:
+- 0 = Jasno ☀️
+- 1-3 = Různé stupně oblačnosti
+- 45/48 = Mlha
+- 51-67 = Různé typy deště
+- 71-86 = Sníh a sněhové přeháňky
+- 95-99 = Bouřky
+
+Kompletní mapování v `lib/weather-api.ts:interpretWeatherCode()`
 
 ### localStorage Schema
 
@@ -81,7 +95,7 @@ types/
 FavoriteLocation[] = [{
   id: "lat,lon",          // Unique identifier
   name: "Prague",
-  country: "CZ",
+  country: "Czechia",
   lat: 50.0880,
   lon: 14.4208
 }]
@@ -89,17 +103,23 @@ FavoriteLocation[] = [{
 
 ## Tailwind Configuration
 
-Používá Tailwind CSS v4 s výchozím nastavením. Gradient pozadí a responzivní grid jsou hlavní stylingové prvky.
+Používá Tailwind CSS v4 s výchozím nastavením. Gradient pozadí, emoji ikony a responzivní grid jsou hlavní stylingové prvky.
 
 ## Common Tasks
 
 ### Přidání nového weather parametru
 
-1. Aktualizuj `types/weather.ts` s novým fieldem
-2. Přidej zobrazení v `components/CurrentWeather.tsx`
+1. Aktualizuj query parametry v `lib/weather-api.ts` (current nebo daily)
+2. Aktualizuj `types/weather.ts` s novým fieldem
+3. Přidej zobrazení v příslušném komponentu
 
-### Změna language/units
+### Přidání nového weather code
 
-Uprav query parametry v `lib/weather-api.ts`:
-- `lang=cz` → jiný jazyk
-- `units=metric` → `imperial` pro Fahrenheit
+Uprav `interpretWeatherCode()` v `lib/weather-api.ts` a přidej mapování pro nový kód.
+
+### Změna jednotek
+
+Open-Meteo defaultně vrací metrické jednotky (°C, km/h, mm). Pro změnu přidej parametry do API callu:
+- `temperature_unit=fahrenheit`
+- `wind_speed_unit=mph`
+- `precipitation_unit=inch`

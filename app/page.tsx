@@ -5,13 +5,13 @@ import SearchBar from '@/components/SearchBar';
 import CurrentWeather from '@/components/CurrentWeather';
 import ForecastCard from '@/components/ForecastCard';
 import FavoritesBar from '@/components/FavoritesBar';
-import { WeatherData, ForecastData, FavoriteLocation } from '@/types/weather';
-import { getCurrentWeather, getForecast } from '@/lib/weather-api';
+import { WeatherResponse, GeocodingResult, FavoriteLocation } from '@/types/weather';
+import { getWeather } from '@/lib/weather-api';
 import { getFavorites, addFavorite, removeFavorite, isFavorite as checkIsFavorite } from '@/lib/local-storage';
 
 export default function Home() {
-  const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
-  const [forecast, setForecast] = useState<ForecastData | null>(null);
+  const [currentWeather, setCurrentWeather] = useState<WeatherResponse | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<GeocodingResult | null>(null);
   const [favorites, setFavorites] = useState<FavoriteLocation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,37 +22,33 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (currentWeather) {
-      const locationId = `${currentWeather.coord.lat},${currentWeather.coord.lon}`;
+    if (currentLocation) {
+      const locationId = `${currentLocation.latitude},${currentLocation.longitude}`;
       setIsFavorite(checkIsFavorite(locationId));
     }
-  }, [currentWeather]);
+  }, [currentLocation]);
 
   const handleSearch = async (city: string) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const [weatherData, forecastData] = await Promise.all([
-        getCurrentWeather(city),
-        getForecast(city),
-      ]);
-
-      setCurrentWeather(weatherData);
-      setForecast(forecastData);
+      const { weather, location } = await getWeather(city);
+      setCurrentWeather(weather);
+      setCurrentLocation(location);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Něco se pokazilo');
       setCurrentWeather(null);
-      setForecast(null);
+      setCurrentLocation(null);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleToggleFavorite = () => {
-    if (!currentWeather) return;
+    if (!currentLocation) return;
 
-    const locationId = `${currentWeather.coord.lat},${currentWeather.coord.lon}`;
+    const locationId = `${currentLocation.latitude},${currentLocation.longitude}`;
 
     if (isFavorite) {
       removeFavorite(locationId);
@@ -60,10 +56,10 @@ export default function Home() {
     } else {
       const newFavorite: FavoriteLocation = {
         id: locationId,
-        name: currentWeather.name,
-        country: currentWeather.sys.country,
-        lat: currentWeather.coord.lat,
-        lon: currentWeather.coord.lon,
+        name: currentLocation.name,
+        country: currentLocation.country,
+        lat: currentLocation.latitude,
+        lon: currentLocation.longitude,
       };
       addFavorite(newFavorite);
       setIsFavorite(true);
@@ -76,24 +72,26 @@ export default function Home() {
     removeFavorite(id);
     setFavorites(getFavorites());
 
-    if (currentWeather) {
-      const currentLocationId = `${currentWeather.coord.lat},${currentWeather.coord.lon}`;
+    if (currentLocation) {
+      const currentLocationId = `${currentLocation.latitude},${currentLocation.longitude}`;
       if (currentLocationId === id) {
         setIsFavorite(false);
       }
     }
   };
 
-  // Get daily forecasts (one per day at noon)
+  // Get daily forecasts (skip today, show next 5 days)
   const getDailyForecasts = () => {
-    if (!forecast) return [];
+    if (!currentWeather?.daily) return [];
 
-    const dailyData = forecast.list.filter(item => {
-      const hour = new Date(item.dt_txt).getHours();
-      return hour === 12; // Noon forecasts
-    }).slice(0, 5);
+    const { time, weather_code, temperature_2m_max, temperature_2m_min } = currentWeather.daily;
 
-    return dailyData;
+    return time.slice(1, 6).map((date, index) => ({
+      date,
+      weatherCode: weather_code[index + 1],
+      tempMax: temperature_2m_max[index + 1],
+      tempMin: temperature_2m_min[index + 1],
+    }));
   };
 
   return (
@@ -125,15 +123,16 @@ export default function Home() {
             </div>
           )}
 
-          {currentWeather && (
+          {currentWeather && currentLocation && (
             <CurrentWeather
               data={currentWeather}
+              location={currentLocation}
               onToggleFavorite={handleToggleFavorite}
               isFavorite={isFavorite}
             />
           )}
 
-          {forecast && getDailyForecasts().length > 0 && (
+          {currentWeather && getDailyForecasts().length > 0 && (
             <div className="w-full max-w-2xl">
               <h3 className="text-2xl font-bold text-gray-800 mb-4">
                 5-denní předpověď
@@ -142,12 +141,10 @@ export default function Home() {
                 {getDailyForecasts().map((item, index) => (
                   <ForecastCard
                     key={index}
-                    date={item.dt_txt}
-                    temp={item.main.temp}
-                    tempMin={item.main.temp_min}
-                    tempMax={item.main.temp_max}
-                    description={item.weather[0].description}
-                    icon={item.weather[0].icon}
+                    date={item.date}
+                    tempMax={item.tempMax}
+                    tempMin={item.tempMin}
+                    weatherCode={item.weatherCode}
                   />
                 ))}
               </div>
