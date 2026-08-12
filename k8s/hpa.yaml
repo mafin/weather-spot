@@ -1,0 +1,29 @@
+# Requires metrics-server in the cluster. If you do not run it, delete this file
+# and drop it from kustomization.yaml -- the HPA would otherwise sit in an
+# "unknown metric" state and never scale.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: weatherspot
+  labels:
+    app.kubernetes.io/name: weatherspot
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: weatherspot
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: weatherspot
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      # Avoid flapping on short traffic bursts
+      stabilizationWindowSeconds: 300

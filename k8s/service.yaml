@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: weatherspot
+  labels:
+    app.kubernetes.io/name: weatherspot
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: weatherspot
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: weatherspot
+    app.kubernetes.io/component: web

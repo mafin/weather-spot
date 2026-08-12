@@ -1,0 +1,134 @@
+# Cloudflare Tunnel connector. Makes the app reachable at
+# https://weather.box325.cz without opening a port or exposing a public IP:
+# cloudflared dials out to Cloudflare's edge and traffic comes back down that
+# connection.
+#
+# This is a remotely-managed tunnel -- which hostname maps to which service is
+# configured in the Zero Trust dashboard, not here. See k8s/README.md.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  labels:
+    app.kubernetes.io/name: cloudflared
+    app.kubernetes.io/component: tunnel
+    app.kubernetes.io/part-of: weatherspot
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cloudflared
+      app.kubernetes.io/component: tunnel
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cloudflared
+        app.kubernetes.io/component: tunnel
+        app.kubernetes.io/part-of: weatherspot
+    spec:
+      automountServiceAccountToken: false
+
+      # The image already runs as uid 65532, so this satisfies the namespace's
+      # restricted Pod Security Standard.
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudflared
+              app.kubernetes.io/component: tunnel
+
+      containers:
+        - name: cloudflared
+          # Pinned deliberately: cloudflared is the only thing standing between
+          # the internet and this cluster, so upgrades should be a decision.
+          image: cloudflare/cloudflared:2026.7.3
+          imagePullPolicy: IfNotPresent
+
+          # The image entrypoint is already "cloudflared --no-autoupdate",
+          # so these are appended to it -- do not repeat either here.
+          args:
+            - tunnel
+            - --loglevel
+            - info
+            - --metrics
+            - 0.0.0.0:2000
+            - run
+
+          env:
+            # Created by hand, never committed -- see k8s/README.md.
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflared-token
+                  key: token
+
+          ports:
+            - name: metrics
+              containerPort: 2000
+              protocol: TCP
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 192Mi
+
+          # /ready returns 200 only while a tunnel connection to Cloudflare is
+          # actually established, so this reflects real reachability.
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 1
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cloudflared
+  labels:
+    app.kubernetes.io/name: cloudflared
+    app.kubernetes.io/component: tunnel
+    app.kubernetes.io/part-of: weatherspot
+spec:
+  # Keeps the site online while a node is drained.
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cloudflared
+      app.kubernetes.io/component: tunnel

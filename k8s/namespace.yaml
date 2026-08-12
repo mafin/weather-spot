@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: weatherspot
+  labels:
+    app.kubernetes.io/name: weatherspot
+    app.kubernetes.io/part-of: weatherspot
+    # Nothing in this app needs elevated privileges, so enforce the strictest
+    # Pod Security Standard. The Deployment is written to satisfy it.
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted

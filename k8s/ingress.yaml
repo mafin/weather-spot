@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: weatherspot
+  labels:
+    app.kubernetes.io/name: weatherspot
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: weatherspot
+  annotations: {}
+    # For automatic TLS with cert-manager, uncomment and point at your issuer:
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  # k3s ships Traefik v3 in kube-system. Confirm the class exists with
+  #   kubectl get ingressclass
+  # If no "traefik" class is listed, drop this line entirely -- Traefik on k3s
+  # also picks up Ingresses that specify no class at all.
+  ingressClassName: traefik
+  rules:
+    - host: weatherspot.homelab.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: weatherspot
+                port:
+                  name: http
+  # Uncomment together with the cert-manager annotation above.
+  # tls:
+  #   - hosts:
+  #       - weatherspot.homelab.lan
+  #     secretName: weatherspot-tls

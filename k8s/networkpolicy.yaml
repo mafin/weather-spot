@@ -1,0 +1,69 @@
+# k3s enforces these by default through its embedded kube-router netpol
+# controller, so the selectors below have to be right or the app becomes
+# unreachable. (Enforcement is only off if the server runs with
+# --disable-network-policy.)
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: weatherspot-default-deny
+  labels:
+    app.kubernetes.io/name: weatherspot
+    app.kubernetes.io/part-of: weatherspot
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: weatherspot
+      app.kubernetes.io/component: web
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: weatherspot-allow
+  labels:
+    app.kubernetes.io/name: weatherspot
+    app.kubernetes.io/part-of: weatherspot
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: weatherspot
+      app.kubernetes.io/component: web
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Two ways in, and nothing else.
+    - from:
+        # 1. Traefik, for LAN access via the Ingress. It runs in kube-system on
+        #    k3s, so the podSelector keeps this from opening the app to that
+        #    whole namespace. Both selectors sit in one list item, meaning AND.
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+        # 2. The Cloudflare Tunnel connector, for public access. Same
+        #    namespace, so a bare podSelector is enough.
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudflared
+              app.kubernetes.io/component: tunnel
+      ports:
+        - port: 3000
+          protocol: TCP
+  egress:
+    # DNS only. Every Open-Meteo call is made by the browser from the client
+    # component, never by the pod, so the app needs no outbound internet access.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP

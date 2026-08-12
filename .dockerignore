@@ -30,3 +30,4 @@ coverage
 README.md
 CLAUDE.md
 .claude
+/k8s

@@ -10,6 +10,7 @@ Modern weather dashboard built with Next.js 16, React 19, TypeScript and Tailwin
 - **Favorites**: Save your favorite locations for quick access (stored in localStorage)
 - **No API Key Required**: Uses the free Open-Meteo API with no registration needed
 - **Docker Ready**: Containerized deployment with docker-compose
+- **Kubernetes Ready**: Manifests for k3s, published to the internet over a Cloudflare Tunnel
 
 ## Requirements
 
@@ -63,6 +64,65 @@ The app runs on [http://localhost:3000](http://localhost:3000)
 The image is a multi-stage build on `node:24.19.0-alpine` and runs as the non-root
 `nextjs` user against Next.js standalone output.
 
+### Kubernetes
+
+Manifests for a k3s home lab live in [`k8s/`](k8s/README.md) — Deployment, Service,
+Ingress, PDB, HPA and NetworkPolicy, wired together with kustomize:
+
+```bash
+kubectl apply -k ./k8s
+kubectl -n weatherspot rollout status deployment/weatherspot
+```
+
+The image is pulled from the public Docker Hub repo `mafin/weather-spot`, so nothing
+needs side-loading onto the nodes.
+
+### Public access via Cloudflare Tunnel
+
+The app is published at **https://weather.box325.cz** through a Cloudflare Tunnel.
+`cloudflared` runs as a second Deployment in the cluster and dials *out* to
+Cloudflare's edge, so there is **no port forwarding, no public IP and no inbound
+firewall rule**. TLS terminates at the edge; inside the cluster it is plain HTTP.
+
+```
+internet → Cloudflare edge → tunnel → cloudflared pod → Service → app pod
+LAN      → Traefik                  → Service → app pod
+```
+
+The public path bypasses Traefik and hits the Service directly. The LAN Ingress
+keeps working independently.
+
+#### The tunnel token is not in this repo
+
+`cloudflared` needs a tunnel token, which is a credential and is therefore **never
+committed**. It is expected as a Secret named `cloudflared-token` with a key `token`
+in the `weatherspot` namespace. Create it by hand, once per cluster:
+
+```bash
+kubectl -n weatherspot create secret generic cloudflared-token \
+  --from-literal=token='YOUR-TUNNEL-TOKEN'
+```
+
+Get the token from the Cloudflare Zero Trust dashboard under **Networks → Tunnels →
+your tunnel → Configure** — it is the long string after `--token` in the install
+command shown there.
+
+Without this Secret the `cloudflared` pods will not start, and the public hostname
+returns Cloudflare error 1033. The app itself is unaffected and stays reachable on
+the LAN.
+
+Routing is configured in the dashboard rather than in this repo (it is a
+remotely-managed tunnel). The **Public Hostname** entry must point at the in-cluster
+Service address, not at a node IP:
+
+| Field | Value |
+|---|---|
+| Subdomain / Domain | `weather` / `box325.cz` |
+| Type | `HTTP` |
+| URL | `weatherspot.weatherspot.svc.cluster.local:80` |
+
+Full setup and troubleshooting: [`k8s/README.md`](k8s/README.md).
+
 ### Testing
 
 ```bash
@@ -96,6 +156,8 @@ npx tsc --noEmit
 - **API**: Open-Meteo (Geocoding + Weather Forecast)
 - **Storage**: localStorage for favorites, read via `useSyncExternalStore`
 - **Container**: Docker multi-stage build on Node 24 Alpine
+- **Orchestration**: Kubernetes (k3s) via kustomize, Traefik for LAN ingress
+- **Public access**: Cloudflare Tunnel, no inbound ports
 
 > ESLint is intentionally held at 9.x. `eslint-plugin-react`, which
 > `eslint-config-next` depends on, does not yet support ESLint 10 and crashes on it.
@@ -119,6 +181,10 @@ lib/
 types/
   weather.ts            # TypeScript type definitions
   jest-dom.d.ts         # Pulls jest-dom matcher types into the TS program
+k8s/
+  *.yaml                # Kubernetes manifests (kustomize entrypoint)
+  cloudflared.yaml      # Cloudflare Tunnel connector
+  README.md             # Deployment and tunnel setup
 ```
 
 ## How It Works

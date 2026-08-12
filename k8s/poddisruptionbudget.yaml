@@ -1,0 +1,15 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: weatherspot
+  labels:
+    app.kubernetes.io/name: weatherspot
+    app.kubernetes.io/component: web
+    app.kubernetes.io/part-of: weatherspot
+spec:
+  # Keeps the site up while you drain a node for maintenance.
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: weatherspot
+      app.kubernetes.io/component: web
