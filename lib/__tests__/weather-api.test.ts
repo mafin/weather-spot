@@ -60,7 +60,37 @@ describe('weather-api', () => {
 
       expect(result).toEqual(mockResponse.results);
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('geocoding-api.open-meteo.com')
+        expect.stringContaining('geocoding-api.open-meteo.com'),
+        expect.anything()
+      );
+    });
+
+    it('should request results in English', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ results: [{ id: 1, name: 'Prague' }] })
+      });
+
+      await searchCity('Prague');
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('language=en'),
+        expect.anything()
+      );
+    });
+
+    it('should forward an abort signal to fetch', async () => {
+      const controller = new AbortController();
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ results: [{ id: 1, name: 'Prague' }] })
+      });
+
+      await searchCity('Prague', controller.signal);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ signal: controller.signal })
       );
     });
 
@@ -121,7 +151,22 @@ describe('weather-api', () => {
 
       expect(result).toEqual(mockWeatherData);
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('api.open-meteo.com')
+        expect.stringContaining('api.open-meteo.com'),
+        expect.anything()
+      );
+    });
+
+    it('should request only the days the dashboard renders', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({})
+      });
+
+      await getWeatherByCoordinates(50.08, 14.42);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('forecast_days=6'),
+        expect.anything()
       );
     });
 

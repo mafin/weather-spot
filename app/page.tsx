@@ -1,87 +1,108 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, useSyncExternalStore } from 'react';
 import SearchBar from '@/components/SearchBar';
 import CurrentWeather from '@/components/CurrentWeather';
 import ForecastCard from '@/components/ForecastCard';
 import FavoritesBar from '@/components/FavoritesBar';
-import { WeatherResponse, GeocodingResult, FavoriteLocation } from '@/types/weather';
-import { getWeather } from '@/lib/weather-api';
-import { getFavorites, addFavorite, removeFavorite, isFavorite as checkIsFavorite } from '@/lib/local-storage';
+import { WeatherResponse, SelectedLocation, FavoriteLocation } from '@/types/weather';
+import { getWeather, getWeatherByCoordinates } from '@/lib/weather-api';
+import {
+  addFavorite,
+  removeFavorite,
+  subscribeToFavorites,
+  getFavoritesSnapshot,
+  getFavoritesServerSnapshot,
+} from '@/lib/local-storage';
 
 export default function Home() {
   const [currentWeather, setCurrentWeather] = useState<WeatherResponse | null>(null);
-  const [currentLocation, setCurrentLocation] = useState<GeocodingResult | null>(null);
-  const [favorites, setFavorites] = useState<FavoriteLocation[]>([]);
+  const [currentLocation, setCurrentLocation] = useState<SelectedLocation | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const pendingRequest = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    setFavorites(getFavorites());
-  }, []);
+  const favorites = useSyncExternalStore(
+    subscribeToFavorites,
+    getFavoritesSnapshot,
+    getFavoritesServerSnapshot
+  );
 
-  useEffect(() => {
-    if (currentLocation) {
-      const locationId = `${currentLocation.latitude},${currentLocation.longitude}`;
-      setIsFavorite(checkIsFavorite(locationId));
-    }
-  }, [currentLocation]);
+  // Derived from favorites, so it never needs to be synced in an effect
+  const currentLocationId = currentLocation
+    ? `${currentLocation.latitude},${currentLocation.longitude}`
+    : null;
+  const isFavorite = favorites.some(fav => fav.id === currentLocationId);
 
-  const handleSearch = async (city: string) => {
-    setIsLoading(true);
-    setError(null);
+  // Abort any in-flight lookup so a slow earlier response cannot overwrite a newer one
+  useEffect(() => () => pendingRequest.current?.abort(), []);
 
-    try {
-      const { weather, location } = await getWeather(city);
-      setCurrentWeather(weather);
-      setCurrentLocation(location);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
-      setCurrentWeather(null);
-      setCurrentLocation(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const runLookup = useCallback(
+    async (
+      lookup: (signal: AbortSignal) => Promise<{ weather: WeatherResponse; location: SelectedLocation }>
+    ) => {
+      pendingRequest.current?.abort();
+      const controller = new AbortController();
+      pendingRequest.current = controller;
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const { weather, location } = await lookup(controller.signal);
+        if (controller.signal.aborted) return;
+        setCurrentWeather(weather);
+        setCurrentLocation(location);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        setError(err instanceof Error ? err.message : 'Something went wrong');
+        setCurrentWeather(null);
+        setCurrentLocation(null);
+      } finally {
+        if (!controller.signal.aborted) setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  const handleSearch = useCallback(
+    (city: string) => runLookup((signal) => getWeather(city, signal)),
+    [runLookup]
+  );
+
+  // Favorites already carry exact coordinates, so skip the geocoding round-trip
+  const handleSelectFavorite = useCallback(
+    (fav: FavoriteLocation) =>
+      runLookup(async (signal) => ({
+        weather: await getWeatherByCoordinates(fav.lat, fav.lon, signal),
+        location: { name: fav.name, country: fav.country, latitude: fav.lat, longitude: fav.lon },
+      })),
+    [runLookup]
+  );
 
   const handleToggleFavorite = () => {
-    if (!currentLocation) return;
-
-    const locationId = `${currentLocation.latitude},${currentLocation.longitude}`;
+    if (!currentLocation || !currentLocationId) return;
 
     if (isFavorite) {
-      removeFavorite(locationId);
-      setIsFavorite(false);
-    } else {
-      const newFavorite: FavoriteLocation = {
-        id: locationId,
-        name: currentLocation.name,
-        country: currentLocation.country,
-        lat: currentLocation.latitude,
-        lon: currentLocation.longitude,
-      };
-      addFavorite(newFavorite);
-      setIsFavorite(true);
+      removeFavorite(currentLocationId);
+      return;
     }
 
-    setFavorites(getFavorites());
+    addFavorite({
+      id: currentLocationId,
+      name: currentLocation.name,
+      country: currentLocation.country,
+      lat: currentLocation.latitude,
+      lon: currentLocation.longitude,
+    });
   };
 
   const handleRemoveFavorite = (id: string) => {
     removeFavorite(id);
-    setFavorites(getFavorites());
-
-    if (currentLocation) {
-      const currentLocationId = `${currentLocation.latitude},${currentLocation.longitude}`;
-      if (currentLocationId === id) {
-        setIsFavorite(false);
-      }
-    }
   };
 
   // Get daily forecasts (skip today, show next 5 days)
-  const getDailyForecasts = () => {
+  const dailyForecasts = useMemo(() => {
     if (!currentWeather?.daily) return [];
 
     const { time, weather_code, temperature_2m_max, temperature_2m_min } = currentWeather.daily;
@@ -92,7 +113,7 @@ export default function Home() {
       tempMax: temperature_2m_max[index + 1],
       tempMin: temperature_2m_min[index + 1],
     }));
-  };
+  }, [currentWeather]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 py-8 px-4">
@@ -112,7 +133,7 @@ export default function Home() {
           {favorites.length > 0 && (
             <FavoritesBar
               favorites={favorites}
-              onSelect={handleSearch}
+              onSelect={handleSelectFavorite}
               onRemove={handleRemoveFavorite}
             />
           )}
@@ -132,15 +153,15 @@ export default function Home() {
             />
           )}
 
-          {currentWeather && getDailyForecasts().length > 0 && (
+          {currentWeather && dailyForecasts.length > 0 && (
             <div className="w-full max-w-2xl">
               <h3 className="text-2xl font-bold text-gray-800 mb-4">
                 5-day forecast
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {getDailyForecasts().map((item, index) => (
+                {dailyForecasts.map((item) => (
                   <ForecastCard
-                    key={index}
+                    key={item.date}
                     date={item.date}
                     tempMax={item.tempMax}
                     tempMin={item.tempMin}

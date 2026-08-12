@@ -1,4 +1,12 @@
-import { getFavorites, addFavorite, removeFavorite, isFavorite } from '../local-storage';
+import {
+  getFavorites,
+  addFavorite,
+  removeFavorite,
+  isFavorite,
+  subscribeToFavorites,
+  getFavoritesSnapshot,
+  getFavoritesServerSnapshot
+} from '../local-storage';
 import { FavoriteLocation } from '@/types/weather';
 
 describe('local-storage', () => {
@@ -18,6 +26,19 @@ describe('local-storage', () => {
       localStorage.setItem('weather-favorites', JSON.stringify(mockFavorites));
 
       expect(getFavorites()).toEqual(mockFavorites);
+    });
+
+    it('should return empty array when stored value is not valid JSON', () => {
+      localStorage.setItem('weather-favorites', '{not json');
+
+      expect(() => getFavorites()).not.toThrow();
+      expect(getFavorites()).toEqual([]);
+    });
+
+    it('should return empty array when stored value is not an array', () => {
+      localStorage.setItem('weather-favorites', '{"id":"50.08,14.42"}');
+
+      expect(getFavorites()).toEqual([]);
     });
   });
 
@@ -113,6 +134,50 @@ describe('local-storage', () => {
 
       addFavorite(location);
       expect(isFavorite('50.08,14.42')).toBe(true);
+    });
+  });
+
+  describe('favorites store', () => {
+    const prague: FavoriteLocation = {
+      id: '50.08,14.42',
+      name: 'Prague',
+      country: 'Czechia',
+      lat: 50.08,
+      lon: 14.42
+    };
+
+    it('should return a referentially stable snapshot between reads', () => {
+      // useSyncExternalStore loops forever if the snapshot identity keeps changing
+      expect(getFavoritesSnapshot()).toBe(getFavoritesSnapshot());
+    });
+
+    it('should return a new snapshot after a favorite is added', () => {
+      const before = getFavoritesSnapshot();
+      addFavorite(prague);
+      const after = getFavoritesSnapshot();
+
+      expect(after).not.toBe(before);
+      expect(after).toEqual([prague]);
+    });
+
+    it('should notify subscribers when favorites change', () => {
+      const listener = jest.fn();
+      const unsubscribe = subscribeToFavorites(listener);
+
+      addFavorite(prague);
+      expect(listener).toHaveBeenCalledTimes(1);
+
+      removeFavorite(prague.id);
+      expect(listener).toHaveBeenCalledTimes(2);
+
+      unsubscribe();
+      addFavorite(prague);
+      expect(listener).toHaveBeenCalledTimes(2);
+    });
+
+    it('should expose an empty, stable server snapshot', () => {
+      expect(getFavoritesServerSnapshot()).toEqual([]);
+      expect(getFavoritesServerSnapshot()).toBe(getFavoritesServerSnapshot());
     });
   });
 });

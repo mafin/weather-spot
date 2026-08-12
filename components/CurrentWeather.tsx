@@ -1,11 +1,11 @@
 'use client';
 
-import { WeatherResponse, GeocodingResult } from '@/types/weather';
+import { WeatherResponse, SelectedLocation } from '@/types/weather';
 import { interpretWeatherCode } from '@/lib/weather-api';
 
 interface CurrentWeatherProps {
   data: WeatherResponse;
-  location: GeocodingResult;
+  location: SelectedLocation;
   onToggleFavorite: () => void;
   isFavorite: boolean;
 }

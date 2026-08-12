@@ -9,6 +9,8 @@ const createJestConfig = nextJest({
 const config = {
   coverageProvider: 'v8',
   testEnvironment: 'jsdom',
+  // Avoid a haste collision with the package.json emitted into .next/standalone
+  modulePathIgnorePatterns: ['<rootDir>/.next/'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.mjs'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',

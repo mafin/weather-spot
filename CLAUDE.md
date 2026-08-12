@@ -95,7 +95,7 @@ types/
 
 **Geocoding API** (vyhledávání měst):
 ```
-GET https://geocoding-api.open-meteo.com/v1/search?name={city}&count=10&language=cs
+GET https://geocoding-api.open-meteo.com/v1/search?name={city}&count=10&language=en
 ```
 
 **Weather Forecast API**:
@@ -104,7 +104,7 @@ GET https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}
   &current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,pressure_msl
   &daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max
   &timezone=auto
-  &forecast_days=7
+  &forecast_days=6
 ```
 
 **WMO Weather Codes**: Používá standardní WMO kódy (0-99) pro interpretaci počasí:

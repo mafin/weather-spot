@@ -4,7 +4,7 @@ import { FavoriteLocation } from '@/types/weather';
 
 interface FavoritesBarProps {
   favorites: FavoriteLocation[];
-  onSelect: (name: string) => void;
+  onSelect: (favorite: FavoriteLocation) => void;
   onRemove: (id: string) => void;
 }
 
@@ -23,7 +23,7 @@ export default function FavoritesBar({ favorites, onSelect, onRemove }: Favorite
             className="group flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
           >
             <button
-              onClick={() => onSelect(fav.name)}
+              onClick={() => onSelect(fav)}
               className="text-sm font-medium text-gray-700 hover:text-blue-600"
             >
               {fav.name}, {fav.country}

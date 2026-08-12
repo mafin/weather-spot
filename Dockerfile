@@ -1,7 +1,9 @@
 # Multi-stage build pro Next.js aplikaci
 
+ARG NODE_IMAGE=node:24.19.0-alpine
+
 # Stage 1: Dependencies
-FROM node:20-alpine AS deps
+FROM ${NODE_IMAGE} AS deps
 WORKDIR /app
 
 # Kopírování package files
@@ -11,8 +13,10 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 # Stage 2: Builder
-FROM node:20-alpine AS builder
+FROM ${NODE_IMAGE} AS builder
 WORKDIR /app
+
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Kopírování dependencies z předchozího stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -22,19 +26,21 @@ COPY . .
 RUN npm run build
 
 # Stage 3: Runner (production)
-FROM node:20-alpine AS runner
+FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Vytvoření non-root uživatele
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN addgroup --system --gid 1001 nodejs \
+  && adduser --system --uid 1001 --ingroup nodejs nextjs
 
 # Kopírování potřebných souborů
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+# Standalone server zapisuje do .next/cache, proto musí soubory vlastnit nextjs
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 

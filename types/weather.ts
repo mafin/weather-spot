@@ -58,6 +58,15 @@ export interface FavoriteLocation {
   lon: number;
 }
 
+// The currently displayed place. Structurally satisfied by GeocodingResult,
+// and buildable from a FavoriteLocation without a geocoding round-trip.
+export interface SelectedLocation {
+  name: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+}
+
 // WMO Weather interpretation codes
 export interface WeatherInterpretation {
   description: string;
